@@ -3,6 +3,8 @@ import os
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.options import Options
+from webdriver_manager.chrome import ChromeDriverManager
+from selenium.webdriver.chrome.service import Service
 
 EMAIL = os.environ["LINKEDIN_EMAIL"]
 PASSWORD = os.environ["LINKEDIN_PASSWORD"]
@@ -14,7 +16,11 @@ options.add_argument("--headless=new")
 options.add_argument("--no-sandbox")
 options.add_argument("--disable-dev-shm-usage")
 
-driver = webdriver.Chrome(options=options)
+# FIXED DRIVER
+driver = webdriver.Chrome(
+    service=Service(ChromeDriverManager().install()),
+    options=options
+)
 
 # Login
 driver.get("https://www.linkedin.com/login")
@@ -26,15 +32,15 @@ driver.find_element(By.XPATH, "//button[@type='submit']").click()
 
 time.sleep(5)
 
-# Go to feed
+# Open feed
 driver.get("https://www.linkedin.com/feed/")
 time.sleep(5)
 
-# Click start post
+# Click post
 driver.find_element(By.XPATH, "//button[contains(@class,'share-box-feed-entry__trigger')]").click()
 time.sleep(3)
 
-# Enter content
+# Enter text
 driver.find_element(By.XPATH, "//div[@role='textbox']").send_keys(POST_TEXT)
 time.sleep(2)
 

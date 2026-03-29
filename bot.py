@@ -5,6 +5,8 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.options import Options
 from webdriver_manager.chrome import ChromeDriverManager
 from selenium.webdriver.chrome.service import Service
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
 
 print("🚀 Starting LinkedIn Bot...")
 
@@ -17,6 +19,7 @@ options = Options()
 options.add_argument("--headless=new")
 options.add_argument("--no-sandbox")
 options.add_argument("--disable-dev-shm-usage")
+options.add_argument("--window-size=1920,1080")
 
 driver = None
 
@@ -26,43 +29,61 @@ try:
         options=options
     )
 
-    print("🌐 Opening LinkedIn login page...")
-    driver.get("https://www.linkedin.com/login")
-    time.sleep(5)
+    wait = WebDriverWait(driver, 20)
 
-    print("🔐 Entering credentials...")
-    driver.find_element(By.ID, "username").send_keys(EMAIL)
+    # 🔐 LOGIN
+    print("🔐 Logging in...")
+    driver.get("https://www.linkedin.com/login")
+
+    wait.until(EC.presence_of_element_located((By.ID, "username"))).send_keys(EMAIL)
     driver.find_element(By.ID, "password").send_keys(PASSWORD)
     driver.find_element(By.XPATH, "//button[@type='submit']").click()
 
-    time.sleep(8)
+    # 🏠 WAIT FOR FEED LOAD
+    print("🏠 Waiting for feed...")
+    wait.until(EC.presence_of_element_located((By.TAG_NAME, "body")))
 
-    print("🏠 Opening feed...")
     driver.get("https://www.linkedin.com/feed/")
-    time.sleep(8)
 
-    print("✍️ Clicking start post...")
-    driver.find_element(By.XPATH, "//button[contains(@class,'share-box-feed-entry__trigger')]").click()
-    time.sleep(5)
+    # ✍️ CLICK "START POST" BUTTON (MULTIPLE FALLBACKS)
+    print("✍️ Finding post button...")
 
+    try:
+        post_button = wait.until(
+            EC.element_to_be_clickable((By.XPATH, "//button[contains(@class,'share-box-feed-entry__trigger')]")
+        )
+    except:
+        try:
+            post_button = wait.until(
+                EC.element_to_be_clickable((By.XPATH, "//button[contains(@aria-label,'Start a post')]")
+            )
+        except:
+            post_button = wait.until(
+                EC.element_to_be_clickable((By.XPATH, "//button[contains(.,'Start a post')]")
+            )
+
+    post_button.click()
+
+    # 📝 ENTER TEXT
     print("📝 Writing post...")
-    driver.find_element(By.XPATH, "//div[@role='textbox']").send_keys(POST_TEXT)
-    time.sleep(3)
+    textbox = wait.until(
+        EC.presence_of_element_located((By.XPATH, "//div[@role='textbox']")
+    )
+    textbox.send_keys(POST_TEXT)
 
-    print("🚀 Clicking post button...")
-    driver.find_element(By.XPATH, "//button[contains(@class,'share-actions__primary-action')]").click()
+    # 🚀 CLICK POST
+    print("🚀 Posting...")
+    post_btn = wait.until(
+        EC.element_to_be_clickable((By.XPATH, "//button[contains(@class,'share-actions__primary-action')]")
+    )
+    post_btn.click()
 
     print("✅ Post submitted!")
 
-    time.sleep(5)
-
 except Exception as e:
-    print("❌ ERROR OCCURRED:")
-    print(str(e))
-
+    print("❌ ERROR:", str(e))
     if driver:
         driver.save_screenshot("error.png")
-
     raise
 
 finally:

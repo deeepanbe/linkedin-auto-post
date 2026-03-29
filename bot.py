@@ -1,50 +1,88 @@
-from selenium import webdriver
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
-from selenium.webdriver.chrome.options import Options
+import requests
+from datetime import datetime
+import smtplib
+from email.mime.text import MIMEText
 import os
-import time
+import sys
 
-# Initialize Chrome driver with headless mode for CI/CD
-chrome_options = Options()
-chrome_options.add_argument("--headless")
-chrome_options.add_argument("--no-sandbox")
-chrome_options.add_argument("--disable-dev-shm-usage")
+print("🚀 Starting check...")
 
-# Create driver instance BEFORE using it
-driver = webdriver.Chrome(options=chrome_options)
+SHEET_URL = "https://opensheet.elk.sh/1wYLoyUfnPREts9WWfZwykG2Ows4Sa3XHJiOIgJMSi2E/Sheet1"
 
-# Get LinkedIn credentials from environment variables
-email = os.getenv('LINKEDIN_EMAIL')
-password = os.getenv('LINKEDIN_PASSWORD')
+EMAIL_SENDER = os.environ.get("EMAIL_SENDER")
+EMAIL_PASSWORD = os.environ.get("EMAIL_PASSWORD")
+EMAIL_RECEIVER = os.environ.get("EMAIL_RECEIVER")
+
+if not EMAIL_SENDER or not EMAIL_PASSWORD or not EMAIL_RECEIVER:
+    print("❌ Missing one or more email environment variables.")
+    sys.exit(1)
 
 try:
-    # Navigate to LinkedIn
-    driver.get('https://www.linkedin.com/login')
-    
-    # Login
-    driver.find_element(By.ID, 'username').send_keys(email)
-    driver.find_element(By.ID, 'password').send_keys(password)
-    driver.find_element(By.XPATH, '//button[@type="submit"]').click()
-    
-    time.sleep(3)
-    
-    # Wait for post button and click
-    wait = WebDriverWait(driver, 10)
-    button = wait.until(EC.element_to_be_clickable((By.XPATH, '//button[contains(., "Start a post")]')))
-    button.click()
-    
-    # Post content
-    post_textarea = wait.until(EC.presence_of_element_located((By.XPATH, '//div[@role="textbox"]')))
-    post_textarea.send_keys("Your post content here!")
-    
-    # Click post button
-    another_button = wait.until(EC.element_to_be_clickable((By.XPATH, '//button[contains(., "Post")]')))
-    another_button.click()
-    
-    print("Post published successfully!")
-    
-finally:
-    # Always close the driver
-    driver.quit()
+    print("📊 Fetching sheet...")
+    resp = requests.get(SHEET_URL, timeout=15)
+    resp.raise_for_status()
+    data = resp.json()
+
+    now = datetime.now()
+    posts_to_send = []
+
+    # Find all pending posts that are due
+    for row in data:
+        status = row.get("Status", "").strip().lower()
+        if status != "pending":
+            continue
+
+        date_str = row.get("Date", "").strip()
+        time_str = row.get("Time", "").strip()
+        if not date_str or not time_str:
+            continue
+
+        try:
+            scheduled = datetime.strptime(
+                f"{date_str} {time_str}",
+                "%Y-%m-%d %I:%M %p"
+            )
+        except ValueError:
+            # Skip rows with bad date/time format
+            continue
+
+        if scheduled <= now:
+            posts_to_send.append(row)
+
+    if not posts_to_send:
+        print("⏳ No posts to send")
+        sys.exit(0)
+
+    for row in posts_to_send:
+        post = row.get("Full LinkedIn Post", "").strip()
+        if not post:
+            continue
+
+        print("📢 Sending email for post...")
+
+        message = (
+            "Time to post on LinkedIn 🚀\n\n"
+            "Open: https://www.linkedin.com/feed/\n\n"
+            "Copy and paste:\n\n"
+            f"{post}\n"
+        )
+
+        msg = MIMEText(message)
+        msg["Subject"] = "LinkedIn Post Reminder"
+        msg["From"] = EMAIL_SENDER
+        msg["To"] = EMAIL_RECEIVER
+
+        try:
+            with smtplib.SMTP("smtp.office365.com", 587) as server:
+                server.starttls()
+                server.login(EMAIL_SENDER, EMAIL_PASSWORD)
+                server.send_message(msg)
+            print("✅ Email sent for one post")
+        except Exception as e:
+            print("❌ ERROR sending email:", str(e))
+
+    print("✅ Run completed")
+
+except Exception as e:
+    print("❌ ERROR in main flow:", str(e))
+    sys.exit(1)

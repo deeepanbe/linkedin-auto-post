@@ -50,16 +50,16 @@ try:
 
     try:
         post_button = wait.until(
-            EC.element_to_be_clickable((By.XPATH, "//button[contains(@class,'share-box-feed-entry__trigger')]")).__trigger
+            EC.element_to_be_clickable((By.XPATH, "//button[contains(@class,'share-box-feed-entry__trigger')]"))
         )
     except:
         try:
             post_button = wait.until(
-                EC.element_to_be_clickable((By.XPATH, "//button[contains(@aria-label,'Start a post')]")).__start_post
+                EC.element_to_be_clickable((By.XPATH, "//button[contains(@aria-label,'Start a post')]"))
             )
         except:
             post_button = wait.until(
-                EC.element_to_be_clickable((By.XPATH, "//button[contains(.,'Start a post')]").__start_post_button__
+                EC.element_to_be_clickable((By.XPATH, "//button[contains(.,'Start a post')]"))
             )
 
     post_button.click()
@@ -74,7 +74,7 @@ try:
     # 🚀 CLICK POST
     print("🚀 Posting...")
     post_btn = wait.until(
-        EC.element_to_be_clickable((By.XPATH, "//button[contains(@class,'share-actions__primary-action')]")).__post_actions__________
+        EC.element_to_be_clickable((By.XPATH, "//button[contains(@class,'share-actions__primary-action')]"))
     )
     post_btn.click()
 
